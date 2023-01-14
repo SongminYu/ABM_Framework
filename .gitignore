@@ -2,6 +2,7 @@
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
+/node_modules
 prof/
 *.py[cod]
 *$py.class
@@ -416,3 +417,4 @@ _output
 .history
 .vscode
 /archive
+*.js.map
