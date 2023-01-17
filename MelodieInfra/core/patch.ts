@@ -65,7 +65,6 @@ export interface AgentContainerComponent extends BaseComponent {
 
 export interface GridComponent extends BaseComponent {
     type: "grid"
-    cls: string
     width: number
     height: number
     spots: { [key: string]: any }[]

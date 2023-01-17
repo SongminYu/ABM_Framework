@@ -1,6 +1,5 @@
 from .types import ClassVar, Set, Dict, List, Tuple
 
-
 from .agent import Agent
 
 
@@ -44,7 +43,7 @@ class GridAgent(GridItem):
         """
         raise NotImplementedError("Category should be set for GridAgent")
 
-    def rand_move_agent(self,  x_range,  y_range):
+    def rand_move_agent(self, x_range, y_range):
         """
         Randomly move to a new position within x and y range.
 
@@ -102,20 +101,21 @@ class Grid:
         self._agent_ids: Dict[str, List[Set[int]]] = {}
         self._spots = []
         self.caching = caching
+        self._agent_containers = {}
 
     def init_grid(self):
-        self._spots = [[new(spot_cls(self._convert_to_1d(x, y), x, y))
+        self._spots = [[new(self._spot_cls(self._convert_to_1d(x, y), x, y))
                         for x in range(self.width)] for y in range(self.height)]
         for x in range(self.width):
             for y in range(self.height):
                 self._spots[y][x].setup()
         # [set() for i in range(width * height)]
 
-        if caching:
-            self.get_neighbors = functools.lru_cache(
-                self.width * self.height)(self.get_neighbors)
-            self._bound_check = functools.lru_cache(
-                self.width * self.height)(self._bound_check)
+        # if caching:
+        #     self.get_neighbors = functools.lru_cache(
+        #         self.width * self.height)(self.get_neighbors)
+        #     self._bound_check = functools.lru_cache(
+        #         self.width * self.height)(self._bound_check)
 
     def add_category(self, category_name: str):
         """
@@ -180,7 +180,10 @@ class Grid:
         :param y:
         :return:
         """
-        return x % self.width, y % self.height
+        x_wrapped, y_wrapped = x % self.width, y % self.height
+        x_wrapped = x_wrapped if x_wrapped >= 0 else self.width + x_wrapped
+        y_wrapped = y_wrapped if y_wrapped >= 0 else self.height + y_wrapped
+        return x_wrapped, y_wrapped
 
     def _get_neighbor_positions(self, x, y, radius: int = 1, moore=True, except_self=True) -> List[Tuple[int, int]]:
         """
@@ -206,23 +209,23 @@ class Grid:
                 neighbors.append(self._bound_check(x + dx, y + dy))
         return neighbors
 
-    def _get_neighborhood(self, x, y, radius = 1, moore=True, except_self=True):
+    def _get_neighborhood(self, x, y, radius=1, moore=True, except_self=True):
         """
         Get all spots around (x, y)
 
         """
-        neighbor_positions = self._get_neighbor_positions(x, y, radius, moore, except_self)
+        neighbor_positions = self._get_neighbor_positions(
+            x, y, radius, moore, except_self)
         spots = []
         for pos in neighbor_positions:
             x, y = pos
             spots.append(self.get_spot(x, y))
         return spots
-    
 
-    def get_agent_neighborhood(self, agent, radius = 1, moore=True, except_self=True):
+    def get_agent_neighborhood(self, agent, radius=1, moore=True, except_self=True):
         return self._get_neighborhood(agent.x, agent.y, radius, moore, except_self)
 
-    def get_spot_neighborhood(self, spot, radius = 1, moore=True, except_self=True):
+    def get_spot_neighborhood(self, spot, radius=1, moore=True, except_self=True):
         return self._get_neighborhood(spot.x, spot.y, radius, moore, except_self)
 
     def add_agent(self, agent_id: int, category: str, x: int, y: int):
@@ -331,6 +334,41 @@ class Grid:
                 grid_roles[pos_1d, 2] = 0
                 grid_roles[pos_1d, 3] = spot.role
         return grid_roles
+
+    def setup_agent_locations(self, category, initial_placement="direct") -> None:
+        """
+        Add an agent category.
+
+        For example, if there are two classes of agents: `Wolf(GridAgent)` and `Sheep(GridAgent)`,
+        and there are 100 agents with id 0~99 for each class. It is obvious in such a circumstance that
+        we cannot identify an agent only with agent *id*.So it is essential to use *category_name* to distinguish two types of agents.
+
+        :param category_id: The id of new category.
+        :param category: An AgentList object
+        :param initial_placement: A str object stand for initial placement.
+        :return: None
+        """
+        initial_placement = initial_placement.lower()
+        self._add_agent_container(category, initial_placement)
+
+    def _add_agent_container(self, category, initial_placement):
+
+        assert category is not None, f"Agent Container was None"
+        agent = category[0]
+        category_id = agent.category
+        assert 0 <= category_id < 100, f"Category ID {category_id} should be a int between [0, 100)"
+        assert self._agent_containers[category_id] is None, f"Category ID {category_id} already existed!"
+        self._agent_containers[category_id] = category
+        assert initial_placement in {"random_single", "direct"}, f"Invalid initial placement '{initial_placement}' "
+        if initial_placement == "random_single":
+            for agent in category:
+                pos = self.find_empty_spot()
+                agent.x = pos[0]
+                agent.y = pos[1]
+                self.add_agent(agent)
+        elif initial_placement == "direct":
+            for agent in category:
+                self.add_agent(agent)
 
 
 __all__ = ['GridAgent', 'GridItem', 'Spot', 'Grid']

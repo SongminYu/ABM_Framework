@@ -10,16 +10,37 @@ class MyModel(Model):
         self.grid = Grid()
         self.agents = None
 
+    def count(self, spots):
+        alive_count = 0
+        for spot in iterable(spots):
+            if spot.alive:
+                alive_count+=1
+        if alive_count<3:
+            spot.alive_next = True
+        elif alive_count==3:
+            spot.alive_next = spot.alive
+        else:
+            spot.alive_next = False
+
+    def step(self):
+        for i in range(self.grid.width):
+            for j in range(self.grid.height):
+                spot = self.grid.get_spot(i, j)
+                neighborhood = self.grid.get_spot_neighborhood(spot)
+                self.count(neighborhood)
+        for i in range(self.grid.width):
+            for j in range(self.grid.height):
+                spot = self.grid.get_spot(i, j)
+                spot.alive = spot.alive_next
+                # print()
+
     def run(self):
-        spot = self.grid.get_spot(5, 5)
-        print('spot', spot)
-        # print(self.grid._get_neighbor_positions(5,5))
-        print(self.grid.get_spot_neighborhood(spot))
-        sum = 0
-        self.agents.add()
-        for agent in iterable(self.agents):
-            sum += agent.test()
-        print(sum)
+        self.step()
+        # sum = 0
+        # self.agents.add()
+        # for agent in iterable(self.agents):
+        #     sum += agent.test()
+        # print(sum)
 
 
 class MyAgent(GridAgent):
@@ -43,6 +64,7 @@ class MyEnv(Environment):
     def setup(self):
         self.tmp = 123
 
+SIZE = 300
 
 data = {
     "model_cls": "MyModel",
@@ -66,8 +88,8 @@ data = {
             'type': 'grid',
             "cls": "Grid",
             'spot_cls': 'Spot',
-            "width": 10,
-            "height": 10,
+            "width": SIZE,
+            "height": SIZE,
             "spots": []
         }
     ]
@@ -76,9 +98,9 @@ for i in range(10000):
     data['components'][1]['agents'].push(
         {"a": 123, "id": i+1, "x": random.randint(0, 9), "y": random.randint(0, 9), 'category': 1})
 
-for x in range(10):
-    for y in range(10):
-        data['components'][2]['spots'].push({"x": x, "y": y, "id": i+1})
+for x in range(SIZE):
+    for y in range(SIZE):
+        data['components'][2]['spots'].push({"x": x, "y": y, "id": i+1, "alive": False, "alive_nexttick": False})
 model = unmarshallModel(data)
 
 t0 = time.time()

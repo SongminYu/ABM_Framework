@@ -1,7 +1,7 @@
 # cython:language_level=3
 from typing import Dict, Any
 from typing import Tuple, List, Dict, Optional, TYPE_CHECKING
-
+from itertools import chain
 import pandas as pd
 
 from MelodieInfra import MelodieExceptions
@@ -9,9 +9,8 @@ from MelodieInfra import MelodieExceptions
 from typing import Optional, TYPE_CHECKING
 
 cdef class Element:
-
+    serializable_c_props = []
     cpdef void set_params(self, dict params) except *:
-
         """
 
         :param params: Dict[str, Any]
@@ -21,7 +20,13 @@ cdef class Element:
             assert hasattr(self, paramName), f"param named {paramName}, value {paramValue} not in Agent.params"
             setattr(self, paramName, paramValue)
 
-
+    def to_json(self):
+        d = {}
+        props = chain(self.__dict__.keys(), self.__class__.serializable_c_props) if hasattr(self, '__dict__') else self.__class__.serializable_c_props
+        for property in props:
+            attr = getattr(self, property)
+            d[property] = attr
+        return d
 
 
 
@@ -30,6 +35,7 @@ cdef class Agent(Element):
     Base class for Agent.
 
     """
+    serializable_c_props = ['id']
     def __init__(self, agent_id: int):
         self.id = agent_id
         self.scenario = None

@@ -36,6 +36,7 @@ ctypedef fused DTYPE_FUSED:
     np.float64_t
 
 cdef class GridItem(Agent):
+    serializable_c_props = ['id', 'x', 'y']
     def __init__(self, agent_id:int, grid, x:int=0, y:int=0 ):
         super().__init__(agent_id)
         self.grid = grid
@@ -56,6 +57,7 @@ cdef class GridItem(Agent):
         return f"<{self.__class__.__name__} 'x': {self.x}, 'y': {self.y}>"
 
 cdef class GridAgent(GridItem):
+    serializable_c_props = ['id', 'x', 'y', 'category']
     def __init__(self, agent_id: int, x: int = 0, y: int = 0, grid = None):
         super().__init__(agent_id, grid, x, y)
         self.category = -1
@@ -84,6 +86,7 @@ cdef class GridAgent(GridItem):
         self.x, self.y = self.grid.rand_move_agent(self, self.category, x_range, y_range)
 
 cdef class Spot(GridItem):
+    serializable_c_props = ['id', 'x', 'y', 'colormap']
     def __init__(self, spot_id: int, grid: Grid, x: int = 0, y: int = 0):
         super().__init__(spot_id, grid, x, y)
         self.grid = grid
@@ -226,9 +229,14 @@ cdef class Grid:
 
         self._neighbors_cache = {}
         self._roles_list = [[0 for j in range(4)] for i in range(self._width*self._height)]
-        self._agent_id_mgr = AgentIDManager(self._width, self._height, allow_multi=self._multi)
+        # self._agent_id_mgr = AgentIDManager(self._width, self._height, allow_multi=self._multi)
         self._agent_containers = [None for i in range(100)]
         self._agent_categories = set()
+        # position of agent
+        self._existed_agents: Dict[str, Dict[int, Tuple[int, int]]] = {}
+
+        # category -> list of set
+        self._agent_ids: List[Dict[str, Set[int]]] = {}
         
 
     def setup_params(self, width: int, height: int, wrap=True, caching=True, multi=True):
@@ -326,7 +334,10 @@ cdef class Grid:
         :param y:
         :return: A set of int, the agent ids.
         """
-        return self._agent_id_mgr.agents_on_spot(spot.x, spot.y)
+        l = []
+        for category, agent_id in self._agent_ids[spot.id]:
+            l.append((category, agent_id)) 
+        return l
 
 
     cpdef AgentList get_agent_container(self, category_id) except *:
@@ -484,7 +495,9 @@ cdef class Grid:
         :return:
         """
         x, y = self._bound_check(x, y)
-        self._agent_id_mgr._add_agent(agent_id, category, x, y)
+        self._existed_agents[category][agent_id] = (x, y)
+        spot = self.get_spot(x, y)
+        self._agent_ids[spot.id][category].add(agent_id)
 
     cdef void _remove_agent(self, long agent_id, long category,long x, long y) except *:
         x, y = self._bound_check(x, y)
@@ -661,3 +674,16 @@ cdef class Grid:
         for spot_pos_1d in self._agent_id_mgr.get_empty_spots():
             positions.append(self._agent_id_mgr.num_to_2d_coor(spot_pos_1d))
         return positions
+    
+    def spots_to_json(self):
+        """
+        Convert spots in this grid into a list of json-serializable dict
+        
+        :return: JSON serializable list
+        """
+        spots_serialized = []
+        for x in range(self.width()):
+            for y in range(self.height()):
+                spot = self._spots[y][x]
+                spots_serialized.append(spot.to_json())
+        return spots_serialized

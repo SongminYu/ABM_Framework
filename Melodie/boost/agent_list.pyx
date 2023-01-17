@@ -391,7 +391,15 @@ cdef class AgentList(BaseAgentContainer):
         
         self._set_index(agent.id, len(self.agents) - 1)
 
-    def to_list(self, column_names: List[str]) -> List[Dict]:
+    def to_json(self):
+        """
+        Convert agent list to a json.
+
+        """
+        return [agent.to_json() for agent in self.agents]
+
+
+    def to_list(self, column_names: List[str]=None) -> List[Dict]:
         """
         Dump all agent and their properties into a list of dict.
         
@@ -404,6 +412,7 @@ cdef class AgentList(BaseAgentContainer):
             raise MelodieExceptions.Agents.AgentListEmpty(self)
 
         agent0 = self.agents[0]
+
         for column_name in column_names:
             if not hasattr(agent0, column_name):
                 raise MelodieExceptions.Agents.AgentPropertyNameNotExist(column_name, agent0)

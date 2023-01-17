@@ -1,4 +1,6 @@
+import json
 import logging
+from turtle import st
 from typing import Optional, Union, Type, List
 
 import pandas as pd
@@ -75,6 +77,15 @@ class Model:
         self.initialization_queue: List[
             Union[AgentList, Grid, Environment, DataCollector, Network]
         ] = []
+
+        self._serialization_ignored_properties = {
+            '_serialization_ignored_properties',
+            'visualizer',
+            'initialization_queue',
+            'run_id_in_scenario',
+            'scenario',
+            'config'
+        }
 
     def __del__(self):
         """
@@ -227,7 +238,8 @@ class Model:
             if isinstance(prop, BaseAgentContainer):
                 all_ids = prop.all_agent_ids()
                 if len(set(all_ids)) < len(all_ids):
-                    raise MelodieExceptions.Agents.AgentIDConflict(prop_name, all_ids)
+                    raise MelodieExceptions.Agents.AgentIDConflict(
+                        prop_name, all_ids)
 
     def run(self):
         """
@@ -275,3 +287,63 @@ class Model:
         self.setup()
         for component_to_init in self.initialization_queue:
             component_to_init._setup()
+
+    def dump_data(self):
+        """
+        Dump model data into a json.
+
+        :return: A json-serializable dict
+        """
+        components = []
+        model_meta = {}
+        for prop_name, prop_value in self.__dict__.items():
+            if prop_name in self._serialization_ignored_properties:
+                continue
+            cls = prop_value.__class__.__name__
+            if isinstance(prop_value, Environment):
+                component={
+                    "type": "environment",
+                    "cls": cls,
+                    "prop_name": prop_name,
+                    "data": prop_value.to_json()
+                }
+            elif isinstance(prop_value, AgentList):
+                component={
+                    "type": "agent_list",
+                    "cls": cls,
+                    "prop_name": prop_name,
+                    "agents": prop_value.to_json()
+                }
+            elif isinstance(prop_value, Grid):
+                component={
+                    "type": "grid",
+                    "cls": cls,
+                    "prop_name": prop_name,
+                    "width": prop_value.width(),
+                    "height": prop_value.height(),
+                    "spots": prop_value.spots_to_json(),
+                    "spot_cls": prop_value._spot_cls.__name__,
+                    "_existed_agents": prop_value._existed_agents,
+                    "_agent_ids": prop_value._agent_ids
+                }
+            elif isinstance(prop_value, (Scenario, Config, DataCollector)) or prop_value is None:
+                continue
+            else:
+                raise NotImplementedError(f"{prop_name}:{prop_value}")
+            try:
+                json.dumps(component)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(component)
+                raise e
+            components.append(component)
+        data = {
+            "model_cls": self.__class__.__name__,
+            "scenario": {
+                "cls": self.scenario.__class__.__name__,
+                "data": self.scenario.to_json()
+            },
+            "components": components
+        }
+        return data

@@ -38,12 +38,12 @@ try:
             language="c++",
             # extra_compile_args=["-std=c++11"]
         ),
-        Extension(
-            "Melodie.boost.grid",
-            ["Melodie/boost/grid.pyx"],
-            language="c++",
-            # extra_compile_args=["-std=c++11"],
-        ),
+        # Extension(
+        #     "Melodie.boost.grid",
+        #     ["Melodie/boost/grid.pyx"],
+        #     language="c++",
+        #     # extra_compile_args=["-std=c++11"],
+        # ),
         # define_macros=[('CYTHON_TRACE', '1')]),
         Extension("Melodie.boost.fastrand", ["Melodie/boost/fastrand.pyx"]),
         Extension(

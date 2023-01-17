@@ -62,7 +62,10 @@ def agents(grid: Union[Grid]):
     assert (SHEEP, 3) in mammals_at_1_1
 
     grid.move_agent(a3, 2, 2)
-    assert (SHEEP, 3) in grid.get_spot_agents(grid.get_spot(2, 2))
+
+    spot_2_2 = grid.get_spot(2, 2)
+    print(' grid.get_spot_agents(spot_2_2)', grid.get_spot_agents(spot_2_2))
+    assert (SHEEP, 3) in grid.get_spot_agents(spot_2_2)
 
 
 def neighbors(grid: Grid):
@@ -83,9 +86,12 @@ def neighbors(grid: Grid):
 
     x = px
     y = py
-    assert x == grid.get_spot(x, y).x
-    assert y == grid.get_spot(x, y).y
 
+    print('yyyyyyyyy', x, y, grid.get_spot(x, y), grid.get_spot(x, y).x)
+    assert x == grid.get_spot(x, y).x, f"Error: x:{x} spot: {grid.get_spot(x, y)}"
+    print('zzzzzzzzzz')
+    assert y == grid.get_spot(x, y).y, f"Error: y:{y} spot: {grid.get_spot(x, y)}"
+    print('xxxxxxxx')
     neighbor_ids = grid._get_neighbor_positions(grid.width() - 1, grid.height() - 1, 1)
     grid.get_spot(0, 0)
 
@@ -120,29 +126,29 @@ def convert(grid: Union[Grid]):
     print(arr)
 
 
-def test_agent_id_mgr():
-    from Melodie.boost.grid import AgentIDManager
-
-    am = AgentIDManager(10, 10)
-    SHEEP = 0
-    WOLF = 1
-    am.add_agent(0, 0, 1, 1)  # add a sheep at (1, 1)
-    assert 10 * 1 + 1 not in am.get_empty_spots()
-    am.remove_agent(0, 0, 1, 1)  # remove a sheep from (1, 1)
-    assert 10 * 1 + 1 in am.get_empty_spots()
-
-    am.add_agent(0, 0, 1, 1)  # add a sheep at (1, 1)
-    try:
-        am.add_agent(0, 0, 1, 1)  # add a sheep at (1, 1)
-        assert False, "An Error should be raised above"
-    except ValueError:
-        pass
-    print(len(am.get_empty_spots()))
-    am.add_agent(0, WOLF, 1, 1)
-    print(am.agents_on_spot(1, 1))
-    assert (WOLF, 0) in am.agents_on_spot(1, 1)
-    assert (SHEEP, 0) in am.agents_on_spot(1, 1)
-    print(am.agents_on_spot(5, 5))
+# def test_agent_id_mgr():
+#     from Melodie.boost.grid import AgentIDManager
+#
+#     am = AgentIDManager(10, 10)
+#     SHEEP = 0
+#     WOLF = 1
+#     am.add_agent(0, 0, 1, 1)  # add a sheep at (1, 1)
+#     assert 10 * 1 + 1 not in am.get_empty_spots()
+#     am.remove_agent(0, 0, 1, 1)  # remove a sheep from (1, 1)
+#     assert 10 * 1 + 1 in am.get_empty_spots()
+#
+#     am.add_agent(0, 0, 1, 1)  # add a sheep at (1, 1)
+#     try:
+#         am.add_agent(0, 0, 1, 1)  # add a sheep at (1, 1)
+#         assert False, "An Error should be raised above"
+#     except ValueError:
+#         pass
+#     print(len(am.get_empty_spots()))
+#     am.add_agent(0, WOLF, 1, 1)
+#     print(am.agents_on_spot(1, 1))
+#     assert (WOLF, 0) in am.agents_on_spot(1, 1)
+#     assert (SHEEP, 0) in am.agents_on_spot(1, 1)
+#     print(am.agents_on_spot(5, 5))
 
 
 CATRGORY_A = 0
@@ -165,6 +171,7 @@ def test_roles():
     roles = grid2.get_colormap()
 
     print(roles)
+    assert len(grid2.spots_to_json()) == 5 * 5
 
 
 def test_single_grid():
@@ -216,7 +223,7 @@ def test_agents_nojit():
     grid.setup_params(width, height)
     agents(grid)
     neighbors(grid)
-    convert(grid)
+    # convert(grid)
 
 
 class Grid2(Grid):

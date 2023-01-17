@@ -226,7 +226,11 @@ class Grid {
         :param y:
         :return:
         */
-        return [(x % this.width), (y % this.height)];
+        var x_wrapped, y_wrapped;
+        [x_wrapped, y_wrapped] = [(x % this.width), (y % this.height)];
+        x_wrapped = ((x_wrapped >= 0) ? x_wrapped : (this.width + x_wrapped));
+        y_wrapped = ((y_wrapped >= 0) ? y_wrapped : (this.height + y_wrapped));
+        return [x_wrapped, y_wrapped];
     }
     _get_neighbor_positions(x, y, radius = 1, moore = true, except_self = true) {
         /*
