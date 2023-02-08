@@ -434,6 +434,6 @@ class ParamsManager:
         :param l:
         :return:
         """
-        assert len(l) == len(self.params)
+        assert len(l) == len(self.params), (l, self.params)
         for i, param in enumerate(self.params):
             param.from_json(l[i])
